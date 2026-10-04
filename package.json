@@ -1,0 +1,22 @@
+{
+  "name": "stocksense",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB \"node server/index.js\" \"vite --host 127.0.0.1\"",
+    "dev:api": "node server/index.js",
+    "dev:web": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node scripts/smoke-test.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "express": "^5.1.0",
+    "sql.js": "^1.13.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "vite": "^6.4.1"
+  }
+}

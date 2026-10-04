@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7f4" />
+    <meta name="description" content="InventraIQ inventory management for shopping malls." />
+    <title>InventraIQ | Smart inventory for shopping malls</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#dashboard" aria-label="InventraIQ home">
+          <img class="brand-logo" src="/inventraiq-logo.png" alt="InventraIQ" />
+        </a>
+        <div class="nav-label">WORKSPACE</div>
+        <nav class="main-nav" aria-label="Main navigation">
+          <a class="nav-link active" href="#dashboard" data-page="dashboard"><span class="nav-icon">◫</span> Dashboard</a>
+          <a class="nav-link" href="#products" data-page="products"><span class="nav-icon">▦</span> Products <span class="nav-count">12</span></a>
+          <a class="nav-link" href="#movements" data-page="movements"><span class="nav-icon">↕</span> Stock movements</a>
+          <a class="nav-link" href="#assistant" data-page="assistant"><span class="nav-icon">✧</span> AI assistant</a>
+          <a class="nav-link manager-only" id="managerPricingNav" href="#pricing" data-page="pricing" hidden><span class="nav-icon">₨</span> Pricing</a>
+          <a class="nav-link manager-only" id="managerReportsNav" href="#reports" data-page="reports" hidden><span class="nav-icon">▤</span> Reports</a>
+          <a class="nav-link manager-only" id="managerCatalogNav" href="#catalog" data-page="catalog" hidden><span class="nav-icon">✎</span> Product setup</a>
+          <a class="nav-link manager-only" id="managerSuppliersNav" href="#suppliers" data-page="suppliers" hidden><span class="nav-icon">♧</span> Suppliers</a>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="mall-card"><div class="mall-icon">N</div><div><strong>Nowshera Mall</strong><small>Sample workspace</small></div><span class="dots">•••</span></div>
+          <div class="profile"><div class="avatar" id="profileAvatar">MS</div><div><strong id="profileName">InventraIQ user</strong><small id="profileRole">Signed in</small></div><button class="signout-button" id="logoutButton" type="button" aria-label="Sign out">↪</button></div>
+        </div>
+      </aside>
+      <main class="main-area">
+        <header class="topbar">
+          <button class="mobile-menu" id="menuToggle" aria-label="Open navigation">☰</button>
+          <div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumbPage">Dashboard</strong></div>
+          <div class="topbar-right"><span class="sample-pill"><span></span> SAMPLE DATA</span><button class="help-button" aria-label="Help">?</button></div>
+        </header>
+        <div id="pageContent"></div>
+        <footer class="footer">
+          <img class="footer-logo" src="/inventraiq-logo.png" alt="InventraIQ" />
+          <div class="footer-credit"><strong>Web Master: MURAD SHAH</strong><span>7+ Years of Experience · Cybersecurity · Network Engineering · Cloud Engineering · Web and Application Development · 25+ International Certificates</span></div>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

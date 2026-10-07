@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: inventraiq-api-murad
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: inventraiq-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STOCKSENSE_DATA_DIR
+        value: /var/data
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: MANAGER_DEFAULT_PASSWORD
+        sync: false
+      - key: STAFF_DEFAULT_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

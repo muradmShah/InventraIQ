@@ -192,3 +192,12 @@ body{background:radial-gradient(ellipse at 65% 0%,#eaf6ef 0,transparent 42%),#f4
 @keyframes dialogRise{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:480px){.landing-signin-dialog{padding:25px 20px 21px;border-radius:16px}.landing-signin-dialog h2{font-size:21px}}
 @media(prefers-reduced-motion:reduce){.landing-signin-dialog[open]{animation:none}}
+
+/* Signed-in workspace: every tool is a scrollable section of the same page. */
+html{scroll-behavior:smooth}
+.workspace-pages{display:grid;gap:31px}
+.workspace-section{min-width:0;padding-bottom:30px;border-bottom:1px solid #e4ebe4;scroll-margin-top:78px}
+.workspace-section:last-child{padding-bottom:0;border-bottom:0}
+.workspace-section[hidden]{display:none!important}
+@media(max-width:650px){.workspace-pages{gap:21px}.workspace-section{padding-bottom:21px;scroll-margin-top:65px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

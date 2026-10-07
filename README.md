@@ -1,6 +1,6 @@
 # InventraIQ starter
 
-This is the InventraIQ local project. It opens on a responsive one-page public landing page with separate Manager and Staff demo sign-in options. Choosing an account opens sign-in in a dialog over the same page. After sign-in, the app provides a dashboard, SQLite-backed catalog, stock movements, Manager-only product setup, pricing and reports, and an AI assistant powered by local Ollama/Qwen. The demo catalog has 52 sample products across Electronics, Clothing, Grocery, and Household. The assistant answers common quantity and low-stock questions directly from SQLite; Qwen interprets other supported questions. A request to change stock creates a review card, and the server changes stock only after that signed-in user presses **Confirm stock change**. Managers can add a product or edit its name, SKU, category, unit, and low-stock threshold. A new product starts at zero stock; quantities can only change through a recorded stock movement. Staff cannot access pricing, reports, or product setup. All seeded product rows and quantities are demonstration data and must be replaced with the client's actual inventory before live use.
+This is the InventraIQ inventory management project. It opens on a responsive one-page public landing page with separate Manager and Staff sign-in options. After sign-in, the workspace tools appear as sections on one long page. The app provides a SQLite-backed catalog, Manager-only product setup, pricing and reports, and an AI assistant. Local development uses Ollama/Qwen; the cloud deployment guide below configures the existing OpenAI provider. The demo catalog has 52 sample products across Electronics, Clothing, Grocery, and Household. The assistant answers common inventory questions directly from database records. A request to change stock creates a review card, and the server changes stock only after that signed-in user presses **Confirm stock change**. Managers can add products and manage suppliers, pricing, and reports. Staff cannot access Manager-only tools. All seeded product rows and quantities are demonstration data and must be replaced with the client's actual inventory before live use.
 
 ## Run it on Windows
 
@@ -38,7 +38,7 @@ To check that the website can be packaged for production, run `npm.cmd run build
 5. Confirm the history row contains the item, previous and new quantities, your demo user name, and the reference note.
 6. Sign out and sign in as Manager. Open **Pricing**, check the sample cost/sale prices, edit a price, and save it.
 7. Sign out and sign in as Staff. The **Pricing** link should be hidden. The server also rejects staff requests to manager pricing routes with `403 Forbidden`.
-8. Resize the browser to a phone width. Use the menu button to open navigation, then switch between pages available to that role.
+8. Resize the browser to a phone width. Use the menu button to open navigation, then tap a menu item to scroll to that section of the same page.
 9. Open **AI assistant** after starting Ollama and downloading the configured Qwen model. Ask a stock question and verify the answer matches the product records.
 10. Ask it to add or remove a small quantity of a sample product. Check the review card, select **Cancel proposal**, and confirm that the product quantity did not change.
 11. Ask again for a stock change. Check the product, direction, reason, quantity, and before/after values. Press **Confirm stock change** only when they are correct. Verify the new quantity and find the recorded action on **Stock movements**.
@@ -79,6 +79,20 @@ The default assistant uses Ollama on the same computer as InventraIQ. Questions 
 If Ollama cannot be reached, open the Ollama app and confirm it is running. If the model is missing, run `ollama pull qwen3:0.6b`. Ollama must be installed on the same computer where the InventraIQ server runs. To use OpenAI instead, set `AI_PROVIDER=openai` and provide `OPENAI_API_KEY` in `.env`.
 
 If no sales have been recorded with the **Sale** reason, the assistant says so. It does not treat damage, transfers, or other removals as sales. Chat messages are not stored as a conversation history. A stock change proposal is temporary and held in server memory for up to 10 minutes; normal stock changes can still be made from the human-operated Stock movements form.
+
+## Deploy online with Vercel and Render
+
+The Vite website is deployed on Vercel. The Express API and SQLite database run on Render. Render needs a paid web service with a persistent disk for SQLite data to survive restarts and deployments; its free service filesystem is temporary. Vercel forwards `/api/*` requests to the Render API through `vercel.json`.
+
+1. Push the updated project to GitHub, including `render.yaml` and `vercel.json`. Never commit `.env` or API keys.
+2. In Render, create a Blueprint from this GitHub repository and approve the `inventraiq-api-murad` web service. Choose the paid Starter plan so its persistent disk is available.
+3. When prompted, set `OPENAI_API_KEY` to your private OpenAI API key. Set `MANAGER_DEFAULT_PASSWORD` and `STAFF_DEFAULT_PASSWORD` to two different, long passwords that you keep private. Do not put these values in GitHub or in the frontend.
+4. Wait for the Render service to deploy. Its API health address should end in `/api/health` and return `{"ok":true,"database":"SQLite"}`.
+5. Confirm that the Render service URL is `https://inventraiq-api-murad.onrender.com`. If Render gives you a different URL, edit the destination in `vercel.json` to use that exact host, then commit and push the change.
+6. In Vercel, choose **Add New → Project**, import the same GitHub repository, and keep the detected Vite settings: build command `npm run build`, output directory `dist`. Deploy the project.
+7. Open the Vercel website, sign in using the Manager email `manager@stocksense.local` and the Manager password you set in Render. Give Staff the Staff email and their separate password.
+
+The online site uses OpenAI for questions that need AI interpretation. OpenAI API usage may be billed. Common stock lookups are answered by the API from database records. Local development continues to use Ollama/Qwen. Cloud passwords are intentionally not shown or pre-filled on the public landing page. The database starts with the 52 demonstration products; this is a portfolio demo, not a production mall database until real data, backups, and access policies are configured.
 
 The 52 sample product rows, demo users, and illustrative cost/sale prices are stored in `data/stocksense.sqlite`. When the existing demo database is recognized, missing demo SKUs are added without replacing its current quantities. Other custom product catalogs do not receive the demo rows. Stock and price changes persist in this local database. The dashboard stock-value figure is illustrative. Before the mall uses the system for live operations, replace the demo catalog with the client's real product list and quantities, configure real staff accounts, choose hosting with HTTPS and persistent database storage, set up backups, and test the workflow with the client. The demo accounts and sample records are not suitable for live operations.
 

@@ -4,9 +4,10 @@ let products = [];
 let activeSuppliers = [];
 let currentUser = null;
 
-const pageContent = document.querySelector('#pageContent');
 const breadcrumbPage = document.querySelector('#breadcrumbPage');
 const navLinks = [...document.querySelectorAll('.nav-link')];
+const contentForPage = (page) => document.querySelector(`[data-page-content="${page}"]`);
+const pageNames = { dashboard: 'Dashboard', products: 'Products', movements: 'Stock movements', assistant: 'AI assistant', pricing: 'Pricing', reports: 'Reports', catalog: 'Product setup', suppliers: 'Suppliers' };
 const money = new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 });
 const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 function stockSenseDate(date = new Date()) {
@@ -28,6 +29,7 @@ function productRow(product) {
 }
 
 function renderDashboard() {
+  const pageContent = contentForPage('dashboard');
   breadcrumbPage.textContent = 'Dashboard';
   const lowStock = products.filter((product) => product.status === 'Low stock').length;
   const outOfStock = products.filter((product) => product.status === 'Out of stock').length;
@@ -63,6 +65,7 @@ function renderDashboard() {
 }
 
 function renderProducts() {
+  const pageContent = contentForPage('products');
   breadcrumbPage.textContent = 'Products';
   const categoryOptions = [...new Set(products.map((product) => product.category))].sort().map((category) => `<option>${escapeHTML(category)}</option>`).join('');
   pageContent.innerHTML = `
@@ -84,7 +87,17 @@ function renderProducts() {
   status.addEventListener('change', filterProducts);
 }
 
+function refreshInventoryViews() {
+  renderDashboard();
+  renderProducts();
+  if (currentUser?.role === 'manager') {
+    renderPricing();
+    renderReports();
+  }
+}
+
 async function renderMovements(notice = '') {
+  const pageContent = contentForPage('movements');
   breadcrumbPage.textContent = 'Stock movements';
   pageContent.innerHTML = `
     <section class="page-heading products-heading movement-heading"><div><div class="eyebrow">INVENTORY <span class="heading-dot">•</span> STOCK CONTROL</div><h1>Stock movements</h1><p>Record stock arriving or leaving, with a traceable history.</p></div><div class="sample-note"><span>✓</span> Each change is saved with your account.</div></section>
@@ -136,6 +149,7 @@ async function renderMovements(notice = '') {
       if (!response.ok) throw new Error(result.error || 'Could not save movement.');
       const action = payload.movementType === 'in' ? 'Stock received' : 'Stock removed';
       products = await fetch('/api/products').then((res) => res.json());
+      refreshInventoryViews();
       await renderMovements(`${action}. Quantity updated from ${result.previousQuantity} to ${result.newQuantity}.`);
     } catch (error) {
       feedback.textContent = error.message;
@@ -161,11 +175,13 @@ async function renderMovements(notice = '') {
 }
 
 function showManagerOnlyMessage() {
+  const pageContent = contentForPage('pricing');
   breadcrumbPage.textContent = 'Restricted';
   pageContent.innerHTML = '<section class="panel error-state"><strong>Manager access required</strong><span>This page contains cost and selling price information. Sign in with a Manager account to view it.</span></section>';
 }
 
 async function renderPricing(notice = '') {
+  const pageContent = contentForPage('pricing');
   breadcrumbPage.textContent = 'Pricing';
   pageContent.innerHTML = '<section class="panel loading-state">Loading manager pricing…</section>';
   try {
@@ -221,16 +237,19 @@ async function renderPricing(notice = '') {
 }
 
 function showManagerReportsDenied() {
+  const pageContent = contentForPage('reports');
   breadcrumbPage.textContent = 'Reports';
   pageContent.innerHTML = '<section class="panel error-state"><strong>Manager access required</strong><span>Inventory reports and audit details are available to Manager accounts only.</span></section>';
 }
 
 function showManagerCatalogDenied() {
+  const pageContent = contentForPage('catalog');
   breadcrumbPage.textContent = 'Product setup';
   pageContent.innerHTML = '<section class="panel error-state"><strong>Manager access required</strong><span>Only Managers can add products or change catalog details.</span></section>';
 }
 
 async function renderReports() {
+  const pageContent = contentForPage('reports');
   breadcrumbPage.textContent = 'Reports';
   const today = stockSenseDate();
   const monthAgo = shiftStockSenseDate(today, -29);
@@ -300,6 +319,7 @@ async function renderReports() {
 }
 
 async function renderCatalog(notice = '') {
+  const pageContent = contentForPage('catalog');
   breadcrumbPage.textContent = 'Product setup';
   pageContent.innerHTML = '<section class="panel loading-state">Loading product setup…</section>';
   try {
@@ -373,6 +393,8 @@ async function renderCatalog(notice = '') {
         dialog.close();
         products = await fetch('/api/products').then((productResponse) => productResponse.json());
         document.querySelector('.nav-count').textContent = products.length;
+        refreshInventoryViews();
+        await renderMovements();
         await renderCatalog(id ? 'Product details updated and recorded in the audit log.' : 'Product added with zero stock. Use Stock movements when stock arrives.');
       } catch (error) { errorBox.textContent = error.message; saveButton.disabled = false; saveButton.textContent = id ? 'Save details' : 'Add product'; }
     });
@@ -382,11 +404,13 @@ async function renderCatalog(notice = '') {
 }
 
 function showManagerSuppliersDenied() {
+  const pageContent = contentForPage('suppliers');
   breadcrumbPage.textContent = 'Suppliers';
   pageContent.innerHTML = '<section class="panel error-state"><strong>Manager access required</strong><span>Only Managers can add suppliers or update supplier details.</span></section>';
 }
 
 async function renderSuppliers(notice = '') {
+  const pageContent = contentForPage('suppliers');
   breadcrumbPage.textContent = 'Suppliers';
   pageContent.innerHTML = '<section class="panel loading-state">Loading suppliers…</section>';
   try {
@@ -465,9 +489,11 @@ async function renderSuppliers(notice = '') {
 async function refreshSuppliers() {
   const response = await fetch('/api/suppliers');
   activeSuppliers = response.ok ? await response.json() : [];
+  await renderMovements();
 }
 
 function renderAssistant() {
+  const pageContent = contentForPage('assistant');
   breadcrumbPage.textContent = 'AI assistant';
   pageContent.innerHTML = `
     <section class="page-heading products-heading assistant-heading"><div><div class="eyebrow">STOCKSENSE <span class="heading-dot">•</span> CONFIRMATION REQUIRED</div><h1>Ask your inventory <span class="assistant-spark">✧</span></h1><p>Get answers from your records, or ask for a stock change proposal to review.</p></div><div class="sample-note"><span>⌑</span> Changes need your confirmation.</div></section>
@@ -528,7 +554,12 @@ function renderAssistant() {
         const complete = document.createElement('strong'); complete.className = 'proposal-complete';
         complete.textContent = `Confirmed: ${result.productName} stock updated from ${result.previousQuantity} to ${result.newQuantity}. The change is in Stock movements history.`;
         card.append(complete);
-        fetch('/api/products').then((res) => res.ok ? res.json() : null).then((latest) => { if (latest) products = latest; }).catch(() => {});
+        fetch('/api/products').then((res) => res.ok ? res.json() : null).then(async (latest) => {
+          if (!latest) return;
+          products = latest;
+          refreshInventoryViews();
+          await renderMovements();
+        }).catch(() => {});
       } catch (error) { card.innerHTML = ''; const issue = document.createElement('strong'); issue.className = 'proposal-failed'; issue.textContent = `${error.message} No change was applied by this confirmation.`; card.append(issue); }
     });
   }
@@ -550,23 +581,35 @@ function renderAssistant() {
 
 function navigate() {
   const requestedPage = location.hash.replace('#', '');
-  const page = ['products', 'movements', 'pricing', 'reports', 'catalog', 'suppliers', 'assistant'].includes(requestedPage) ? requestedPage : 'dashboard';
-  navLinks.forEach((link) => link.classList.toggle('active', link.dataset.page === page));
-  if (page === 'products') renderProducts();
-  else if (page === 'movements') renderMovements();
-  else if (page === 'assistant') renderAssistant();
-  else if (page === 'reports' && currentUser.role === 'manager') renderReports();
-  else if (page === 'reports') showManagerReportsDenied();
-  else if (page === 'catalog' && currentUser.role === 'manager') renderCatalog();
-  else if (page === 'catalog') showManagerCatalogDenied();
-  else if (page === 'suppliers' && currentUser.role === 'manager') renderSuppliers();
-  else if (page === 'suppliers') showManagerSuppliersDenied();
-  else if (page === 'pricing' && currentUser.role === 'manager') renderPricing();
-  else if (page === 'pricing') showManagerOnlyMessage();
-  else renderDashboard();
-  document.title = `InventraIQ | ${page === 'products' ? 'Products' : page === 'movements' ? 'Stock movements' : page === 'pricing' ? 'Pricing' : page === 'reports' ? 'Reports' : page === 'catalog' ? 'Product setup' : page === 'suppliers' ? 'Suppliers' : page === 'assistant' ? 'AI assistant' : 'Inventory overview'}`;
+  const pages = ['dashboard', 'products', 'movements', 'assistant', 'pricing', 'reports', 'catalog', 'suppliers'];
+  let page = pages.includes(requestedPage) ? requestedPage : 'dashboard';
+  const managerPages = ['pricing', 'reports', 'catalog', 'suppliers'];
+  if (managerPages.includes(page) && currentUser.role !== 'manager') page = 'dashboard';
+  if (requestedPage !== page) history.replaceState(null, '', `${location.pathname}${location.search}#${page}`);
+  setActiveSection(page);
   document.querySelector('#sidebar').classList.remove('open');
-  window.scrollTo(0, 0);
+  const section = document.getElementById(page);
+  if (section && requestedPage) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setActiveSection(page) {
+  navLinks.forEach((link) => {
+    const active = link.dataset.page === page;
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'location');
+    else link.removeAttribute('aria-current');
+  });
+  breadcrumbPage.textContent = pageNames[page];
+  document.title = `InventraIQ | ${page === 'dashboard' ? 'Inventory overview' : pageNames[page]}`;
+}
+
+function watchWorkspaceScroll() {
+  if (!('IntersectionObserver' in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    const visibleSection = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (visibleSection) setActiveSection(visibleSection.target.id);
+  }, { rootMargin: '-16% 0px -66% 0px', threshold: [0, 0.15, 0.3] });
+  document.querySelectorAll('.workspace-section:not([hidden])').forEach((section) => observer.observe(section));
 }
 
 function renderHome(apiNotice = '') {
@@ -576,13 +619,13 @@ function renderHome(apiNotice = '') {
         <a class="landing-brand" href="#home" aria-label="InventraIQ home"><img src="/inventraiq-logo.png" alt="InventraIQ" /></a>
         <nav aria-label="Landing page navigation"><a href="#landing-features">Features</a><a href="#account-access">Account access</a><button type="button" class="landing-nav-cta" data-open-role="manager">Sign in <span>↗</span></button></nav>
       </header>
-      <section class="landing-hero">
-        <div class="landing-copy"><div class="landing-eyebrow"><i></i> SMART INVENTORY FOR SHOPPING MALLS</div><h1>Know your stock.<br /><span>Move with clarity.</span></h1><p>One calm, clear workspace for products, stock movements, and AI-assisted inventory insights.</p><div class="landing-actions"><a class="landing-primary" href="#account-access">Explore your workspace <span>↓</span></a><span class="landing-local"><i></i> Local project preview</span></div><div class="landing-proof"><div><strong>01</strong><span>One inventory view</span></div><div><strong>02</strong><span>Role-based access</span></div><div><strong>03</strong><span>Human-confirmed stock</span></div></div></div>
-        <div class="landing-visual" aria-label="Inventory dashboard illustration"><div class="landing-glow"></div><div class="landing-visual-top"><span><i></i> INVENTORY PULSE</span><span>LIVE VIEW</span></div><div class="landing-visual-main"><div class="landing-chart-title"><span>Stock overview</span><b>↗</b></div><div class="landing-big-number">12 <small>products</small></div><div class="landing-chart"><span style="--bar:42%"></span><span style="--bar:65%"></span><span style="--bar:51%"></span><span style="--bar:79%"></span><span style="--bar:60%"></span><span style="--bar:92%"></span><span style="--bar:73%"></span><span style="--bar:100%"></span><span style="--bar:82%"></span><span style="--bar:95%"></span></div><div class="landing-chart-labels"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div></div><div class="landing-float-card"><span class="landing-float-icon">✧</span><span><strong>AI inventory assistant</strong><small>Answers from your records</small></span><i>●</i></div><div class="landing-orbit landing-orbit-a"></div><div class="landing-orbit landing-orbit-b"></div></div>
+      <section class="landing-hero" id="home">
+        <div class="landing-copy"><div class="landing-eyebrow"><i></i> SMART INVENTORY FOR SHOPPING MALLS</div><h1>Know your stock.<br /><span>Move with clarity.</span></h1><p>One calm, clear workspace for products, stock movements, and AI-assisted inventory insights.</p><div class="landing-actions"><a class="landing-primary" href="#account-access">Explore your workspace <span>↓</span></a><span class="landing-local"><i></i> ${import.meta.env.DEV ? 'Local project preview' : 'Cloud demo preview'}</span></div><div class="landing-proof"><div><strong>01</strong><span>One inventory view</span></div><div><strong>02</strong><span>Role-based access</span></div><div><strong>03</strong><span>Human-confirmed stock</span></div></div></div>
+        <div class="landing-visual" aria-label="Inventory dashboard illustration"><div class="landing-glow"></div><div class="landing-visual-top"><span><i></i> INVENTORY PULSE</span><span>SAMPLE VIEW</span></div><div class="landing-visual-main"><div class="landing-chart-title"><span>Stock overview</span><b>↗</b></div><div class="landing-big-number">52 <small>products</small></div><div class="landing-chart"><span style="--bar:42%"></span><span style="--bar:65%"></span><span style="--bar:51%"></span><span style="--bar:79%"></span><span style="--bar:60%"></span><span style="--bar:92%"></span><span style="--bar:73%"></span><span style="--bar:100%"></span><span style="--bar:82%"></span><span style="--bar:95%"></span></div><div class="landing-chart-labels"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div></div><div class="landing-float-card"><span class="landing-float-icon">✧</span><span><strong>AI inventory assistant</strong><small>Answers from your records</small></span><i>●</i></div><div class="landing-orbit landing-orbit-a"></div><div class="landing-orbit landing-orbit-b"></div></div>
       </section>
       ${apiNotice ? `<div class="landing-api-notice" role="status">${escapeHTML(apiNotice)}</div>` : ''}
       <section class="landing-features" id="landing-features"><div class="landing-section-heading"><div><div class="landing-eyebrow">BUILT FOR EVERYDAY OPERATIONS</div><h2>Everything your team needs to stay in sync.</h2></div><p>Clear information for the people who manage the mall and the people who move its stock.</p></div><div class="landing-feature-grid"><article class="landing-feature"><span class="landing-feature-icon">▦</span><div><small>01 / INVENTORY</small><h3>One source of truth</h3><p>Browse products, quantities, categories, and stock alerts from one place.</p></div></article><article class="landing-feature"><span class="landing-feature-icon lavender">◉</span><div><small>02 / TEAM ACCESS</small><h3>Each role has its view</h3><p>Managers see business tools. Staff focus on the daily inventory workflow.</p></div></article><article class="landing-feature"><span class="landing-feature-icon gold">✧</span><div><small>03 / AI ASSISTANT</small><h3>Insight with a human check</h3><p>Ask about real inventory records. Review every proposed stock change before saving.</p></div></article></div></section>
-      <section class="landing-access" id="account-access"><div class="landing-section-heading"><div><div class="landing-eyebrow">CHOOSE YOUR WORKSPACE</div><h2>Sign in with your account.</h2></div><p>These are the project’s default demo accounts. Select a role to fill its sign-in details.</p></div><div class="landing-account-grid"><article class="landing-account manager-account"><div class="landing-account-head"><span class="account-avatar manager-avatar">M</span><span><small>FULL WORKSPACE</small><h3>Mall Manager</h3></span><span class="account-access-mark">↗</span></div><p>Manage inventory, products, suppliers, pricing, and reports.</p><div class="credential-list"><div><span>USERNAME</span><strong>manager@stocksense.local</strong></div><div><span>DEFAULT PASSWORD</span><strong>Manager123!</strong></div></div><button type="button" class="account-login-button manager-login-button" data-open-role="manager">Continue as Manager <span>→</span></button></article><article class="landing-account staff-account"><div class="landing-account-head"><span class="account-avatar staff-avatar">S</span><span><small>DAILY OPERATIONS</small><h3>Store Staff</h3></span><span class="account-access-mark">↗</span></div><p>View stock, record movements, and ask inventory questions.</p><div class="credential-list"><div><span>USERNAME</span><strong>staff@stocksense.local</strong></div><div><span>DEFAULT PASSWORD</span><strong>Staff123!</strong></div></div><button type="button" class="account-login-button staff-login-button" data-open-role="staff">Continue as Staff <span>→</span></button></article></div><div class="landing-demo-note"><span>ⓘ</span> Demo credentials are for local preview only. Replace them with secure individual accounts before live use.</div></section>
+      <section class="landing-access" id="account-access"><div class="landing-section-heading"><div><div class="landing-eyebrow">CHOOSE YOUR WORKSPACE</div><h2>Sign in with your account.</h2></div><p>${import.meta.env.DEV ? 'These are local demo accounts. Select a role to fill its sign-in details.' : 'Use the account details provided by the deployment owner.'}</p></div><div class="landing-account-grid"><article class="landing-account manager-account"><div class="landing-account-head"><span class="account-avatar manager-avatar">M</span><span><small>FULL WORKSPACE</small><h3>Mall Manager</h3></span><span class="account-access-mark">↗</span></div><p>Manage inventory, products, suppliers, pricing, and reports.</p>${import.meta.env.DEV ? '<div class="credential-list"><div><span>USERNAME</span><strong>manager@stocksense.local</strong></div><div><span>DEFAULT PASSWORD</span><strong>Manager123!</strong></div></div>' : '<div class="credential-list"><div><span>ACCOUNT</span><strong>Deployment credentials required</strong></div></div>'}<button type="button" class="account-login-button manager-login-button" data-open-role="manager">Continue as Manager <span>→</span></button></article><article class="landing-account staff-account"><div class="landing-account-head"><span class="account-avatar staff-avatar">S</span><span><small>DAILY OPERATIONS</small><h3>Store Staff</h3></span><span class="account-access-mark">↗</span></div><p>View stock, record movements, and ask inventory questions.</p>${import.meta.env.DEV ? '<div class="credential-list"><div><span>USERNAME</span><strong>staff@stocksense.local</strong></div><div><span>DEFAULT PASSWORD</span><strong>Staff123!</strong></div></div>' : '<div class="credential-list"><div><span>ACCOUNT</span><strong>Deployment credentials required</strong></div></div>'}<button type="button" class="account-login-button staff-login-button" data-open-role="staff">Continue as Staff <span>→</span></button></article></div>${import.meta.env.DEV ? '<div class="landing-demo-note"><span>ⓘ</span> Demo credentials are for local preview only. Replace them with secure individual accounts before live use.</div>' : '<div class="landing-demo-note"><span>ⓘ</span> Public demo passwords are disabled. Request an account from the deployment owner.</div>'}</section>
       <footer class="landing-footer"><img src="/inventraiq-logo.png" alt="InventraIQ" /><span>INVENTORY, IN BETTER FOCUS</span><a href="#account-access">Go to sign in ↑</a></footer>
       <dialog class="landing-signin-dialog" id="landingSignInDialog" aria-labelledby="landingSignInTitle"><button class="landing-dialog-close" id="closeLandingSignIn" type="button" aria-label="Close sign in">×</button><div class="login-eyebrow">ROLE-BASED SECURE ACCESS</div><h2 id="landingSignInTitle">Sign in to your workspace</h2><p class="landing-dialog-subtitle" id="landingSignInSubtitle">Your selected demo account is ready.</p><form id="landingLoginForm"><label for="landingEmail">Username / email</label><input id="landingEmail" type="email" autocomplete="username" required /><label for="landingPassword">Password</label><input id="landingPassword" type="password" autocomplete="current-password" required /><p class="login-error" id="landingLoginError" role="alert"></p><button class="login-submit" id="landingLoginSubmit" type="submit">Sign in <span>→</span></button></form><button class="landing-dialog-home" id="stayOnLanding" type="button">Return to the home page</button><div class="login-security"><span>⌑</span> Your role is checked securely by the server</div></dialog>
     </main>`;
@@ -595,14 +638,14 @@ function renderLogin(message = '', selectedRole = '') {
   if (!dialog) return;
   const role = selectedRole === 'staff' ? 'staff' : 'manager';
   const account = role === 'manager'
-    ? { email: 'manager@stocksense.local', password: 'Manager123!', name: 'Mall Manager' }
-    : { email: 'staff@stocksense.local', password: 'Staff123!', name: 'Store Staff' };
+    ? { email: 'manager@stocksense.local', password: import.meta.env.DEV ? 'Manager123!' : '', name: 'Mall Manager' }
+    : { email: 'staff@stocksense.local', password: import.meta.env.DEV ? 'Staff123!' : '', name: 'Store Staff' };
   const emailInput = document.querySelector('#landingEmail');
   const passwordInput = document.querySelector('#landingPassword');
   const errorBox = document.querySelector('#landingLoginError');
   const submit = document.querySelector('#landingLoginSubmit');
   document.querySelector('#landingSignInTitle').textContent = `Sign in as ${account.name}`;
-  document.querySelector('#landingSignInSubtitle').textContent = `Your ${account.name} demo credentials are filled in. You can edit them if needed.`;
+  document.querySelector('#landingSignInSubtitle').textContent = import.meta.env.DEV ? `Your ${account.name} demo credentials are filled in. You can edit them if needed.` : `Enter the ${account.name} credentials provided by the deployment owner.`;
   emailInput.value = account.email;
   passwordInput.value = account.password;
   errorBox.textContent = message;
@@ -621,7 +664,7 @@ function renderLogin(message = '', selectedRole = '') {
       if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
       location.reload();
     } catch (error) {
-      errorBox.textContent = error.message === 'Failed to fetch' ? 'The local API is not available. Start the InventraIQ API and try again.' : error.message;
+      errorBox.textContent = error.message === 'Failed to fetch' ? (import.meta.env.DEV ? 'The local API is not available. Start the InventraIQ API and try again.' : 'The online API is not responding. Please try again later.') : error.message;
       submit.disabled = false;
       submit.innerHTML = `Sign in <span>→</span>`;
     }
@@ -643,10 +686,20 @@ async function bootstrap() {
     document.querySelector('#profileName').textContent = currentUser.displayName;
     document.querySelector('#profileRole').textContent = `${currentUser.role.toUpperCase()} ACCOUNT`;
     document.querySelector('#profileAvatar').textContent = currentUser.displayName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
-    if (currentUser.role === 'manager') document.querySelector('#managerPricingNav').hidden = false;
-    if (currentUser.role === 'manager') document.querySelector('#managerReportsNav').hidden = false;
-    if (currentUser.role === 'manager') document.querySelector('#managerCatalogNav').hidden = false;
-    if (currentUser.role === 'manager') document.querySelector('#managerSuppliersNav').hidden = false;
+    const isManager = currentUser.role === 'manager';
+    document.querySelectorAll('.manager-only').forEach((item) => { item.hidden = !isManager; });
+    document.querySelectorAll('.manager-workspace-section').forEach((item) => { item.hidden = !isManager; });
+    renderDashboard();
+    renderProducts();
+    renderMovements();
+    renderAssistant();
+    if (isManager) {
+      renderPricing();
+      renderReports();
+      renderCatalog();
+      renderSuppliers();
+    }
+    watchWorkspaceScroll();
     document.querySelector('#menuToggle').addEventListener('click', () => document.querySelector('#sidebar').classList.toggle('open'));
     document.querySelector('#logoutButton').addEventListener('click', async () => {
       await fetch('/api/logout', { method: 'POST' });
@@ -656,7 +709,7 @@ async function bootstrap() {
     navigate();
   } catch (error) {
     console.error('Could not start InventraIQ:', error);
-    renderHome('The API is not connected yet. Start the InventraIQ API before signing in.');
+    renderHome(import.meta.env.DEV ? 'The API is not connected yet. Start the InventraIQ API before signing in.' : 'The online service is temporarily unavailable. Please try again later.');
   }
 }
 

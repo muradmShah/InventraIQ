@@ -18,10 +18,10 @@
         <a class="brand" href="#dashboard" aria-label="InventraIQ home">
           <img class="brand-logo" src="/inventraiq-logo.png" alt="InventraIQ" />
         </a>
-        <div class="nav-label">WORKSPACE</div>
+        <div class="nav-label">ONE-PAGE WORKSPACE</div>
         <nav class="main-nav" aria-label="Main navigation">
           <a class="nav-link active" href="#dashboard" data-page="dashboard"><span class="nav-icon">◫</span> Dashboard</a>
-          <a class="nav-link" href="#products" data-page="products"><span class="nav-icon">▦</span> Products <span class="nav-count">12</span></a>
+          <a class="nav-link" href="#products" data-page="products"><span class="nav-icon">▦</span> Products <span class="nav-count">52</span></a>
           <a class="nav-link" href="#movements" data-page="movements"><span class="nav-icon">↕</span> Stock movements</a>
           <a class="nav-link" href="#assistant" data-page="assistant"><span class="nav-icon">✧</span> AI assistant</a>
           <a class="nav-link manager-only" id="managerPricingNav" href="#pricing" data-page="pricing" hidden><span class="nav-icon">₨</span> Pricing</a>
@@ -40,7 +40,32 @@
           <div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumbPage">Dashboard</strong></div>
           <div class="topbar-right"><span class="sample-pill"><span></span> SAMPLE DATA</span><button class="help-button" aria-label="Help">?</button></div>
         </header>
-        <div id="pageContent"></div>
+        <div id="pageContent" class="workspace-pages" aria-label="InventraIQ workspace sections">
+          <section class="workspace-section" id="dashboard" aria-label="Dashboard">
+            <div data-page-content="dashboard"></div>
+          </section>
+          <section class="workspace-section" id="products" aria-label="Products">
+            <div data-page-content="products"></div>
+          </section>
+          <section class="workspace-section" id="movements" aria-label="Stock movements">
+            <div data-page-content="movements"></div>
+          </section>
+          <section class="workspace-section" id="assistant" aria-label="AI assistant">
+            <div data-page-content="assistant"></div>
+          </section>
+          <section class="workspace-section manager-workspace-section" id="pricing" aria-label="Pricing and margins" hidden>
+            <div data-page-content="pricing"></div>
+          </section>
+          <section class="workspace-section manager-workspace-section" id="reports" aria-label="Reports" hidden>
+            <div data-page-content="reports"></div>
+          </section>
+          <section class="workspace-section manager-workspace-section" id="catalog" aria-label="Product setup" hidden>
+            <div data-page-content="catalog"></div>
+          </section>
+          <section class="workspace-section manager-workspace-section" id="suppliers" aria-label="Suppliers" hidden>
+            <div data-page-content="suppliers"></div>
+          </section>
+        </div>
         <footer class="footer">
           <img class="footer-logo" src="/inventraiq-logo.png" alt="InventraIQ" />
           <div class="footer-credit"><strong>Web Master: MURAD SHAH</strong><span>7+ Years of Experience · Cybersecurity · Network Engineering · Cloud Engineering · Web and Application Development · 25+ International Certificates</span></div>

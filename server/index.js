@@ -112,11 +112,28 @@ if (!movementColumns.includes('reason')) db.run("ALTER TABLE stock_movements ADD
 if (!movementColumns.includes('supplier_id')) db.run('ALTER TABLE stock_movements ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)');
 
 const userCount = db.exec('SELECT COUNT(*) AS count FROM users')[0].values[0][0];
+const isProduction = process.env.NODE_ENV === 'production';
+const managerPassword = process.env.MANAGER_DEFAULT_PASSWORD || (isProduction ? '' : 'Manager123!');
+const staffPassword = process.env.STAFF_DEFAULT_PASSWORD || (isProduction ? '' : 'Staff123!');
 if (userCount === 0) {
+  if (!managerPassword || !staffPassword) {
+    throw new Error('Set MANAGER_DEFAULT_PASSWORD and STAFF_DEFAULT_PASSWORD before starting a new production database.');
+  }
   const addUser = db.prepare('INSERT INTO users (email, display_name, role, password_hash) VALUES (?, ?, ?, ?)');
-  addUser.run(['manager@stocksense.local', 'Mall Manager', 'manager', bcrypt.hashSync('Manager123!', 10)]);
-  addUser.run(['staff@stocksense.local', 'Store Staff', 'staff', bcrypt.hashSync('Staff123!', 10)]);
+  addUser.run(['manager@stocksense.local', 'Mall Manager', 'manager', bcrypt.hashSync(managerPassword, 10)]);
+  addUser.run(['staff@stocksense.local', 'Store Staff', 'staff', bcrypt.hashSync(staffPassword, 10)]);
   addUser.free();
+}
+if (isProduction) {
+  for (const [email, knownPassword] of [['manager@stocksense.local', 'Manager123!'], ['staff@stocksense.local', 'Staff123!']]) {
+    const account = db.prepare('SELECT password_hash FROM users WHERE email = ?');
+    account.bind([email]);
+    const passwordHash = account.step() ? account.getAsObject().password_hash : null;
+    account.free();
+    if (passwordHash && bcrypt.compareSync(knownPassword, passwordHash)) {
+      throw new Error(`The production account ${email} still has a public demo password. Reset it before deployment.`);
+    }
+  }
 }
 
 const seedProducts = [
@@ -717,7 +734,7 @@ function answerCommonInventoryQuestion(question, user) {
     || /\bupdate\s+(?:stock|inventory|quantity)\b/.test(normalized);
   if (asksForChange) return null;
 
-  if (/\b(?:low stock|low inventory|out of stock|below (?:the )?threshold|under (?:the )?threshold|need restocking)\b/.test(normalized)) {
+  if (/\b(?:low (?:in )?stock|low inventory|out of stock|below (?:the )?threshold|under (?:the )?threshold|need restocking)\b/.test(normalized)) {
     return resolveInventoryQuestion({ tasks: [{ intent: 'low_stock' }] }, user);
   }
   if (/\b(?:inventory summary|inventory overview|stock summary|overall inventory|overall stock|total stock|total products|total items|how many (?:products|items))\b/.test(normalized)) {
@@ -902,5 +919,5 @@ app.post('/api/assistant/proposals/:id/cancel', requireAuth, (request, response)
   return response.json({ ok: true, cancelled: true });
 });
 
-const port = Number(process.env.API_PORT || 3001);
-app.listen(port, '127.0.0.1', () => console.log(`InventraIQ API ready at http://127.0.0.1:${port}`));
+const port = Number(process.env.PORT || process.env.API_PORT || 3001);
+app.listen(port, '0.0.0.0', () => console.log(`InventraIQ API ready on port ${port}`));
